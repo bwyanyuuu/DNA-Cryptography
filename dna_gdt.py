@@ -7,20 +7,21 @@ import ast
 import utils
 from utils import *
 
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import unpad
 
-def encrypt_key(data, key):
+
+def encrypt_key(data, key, iv):
     """
-    Encrypt data with key: data XOR key.
+    Encrypt data with key: AES.
     """
+    # 以金鑰搭配 CBC 模式與初始向量建立 cipher 物件
+    cipher = AES.new(bitstring2bytes(key), AES.MODE_CBC, iv=iv.encode())
 
-    # repeat key ONLY if data is longer than key and encrypt
-    if len(data) > len(key):
-        factor = int(len(data) / len(key))
-        key += key * factor
-
-        return bitxor(data, key)
-
-    return bitxor(data, key)
+    # 解密後進行 unpadding
+    originalData = unpad(cipher.decrypt(bitstring2bytes(data)), AES.block_size)
+    
+    return bytes2binstr(originalData)
 
 
 def reshape(dna_sequence, reshape_info):
@@ -215,9 +216,10 @@ def dna_gdt(text, key):
         # decrypt data with key after reshaping it back to binary sequence and then convert it back to dna sequence
         # where decrypt = encrypt(encrypt(data, key), key) and encrypt => xor operation, because (a xor b) xor b = a
         encryption_key = get_pattern(key_del, key)[0]
+        iv = get_pattern(iv_del, key)[0]
         b_data = bits_to_dna(
             group_bits(
-                encrypt_key(dna_to_bits(reverse_reshape(b_data), utils.dna_base_to_two_bits_table), encryption_key)),
+                encrypt_key(dna_to_bits(reverse_reshape(b_data), utils.dna_base_to_two_bits_table), encryption_key, iv)),
             utils.two_bits_to_dna_base_table)
         # print("Decrypted data:", b_data)
 
@@ -227,7 +229,7 @@ def dna_gdt(text, key):
 
 
 def main():
-    original_file = open(original_filename, "r")
+    original_file = open(plaintext_filename, "r")
     encrypted_file = open(encrypted_filename, "r")
     decrypted_file = open(decrypted_filename, "w")
     key_file = open(key_filename, "r")

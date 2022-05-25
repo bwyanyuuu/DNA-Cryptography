@@ -20,6 +20,7 @@ complement_mutation_del = "<complement_mutation>"
 alter_mutation_del = "<alter_mutation>"
 mutation_table_del = "<mutation_table>"
 chromosome_del = "<chromosome>"
+iv_del = "<iv>"
 
 # generate encoding tables domains
 two_bit_list = ['00', '01', '10', '11']
@@ -37,7 +38,7 @@ four_bits_to_two_dna_base_table = None
 two_dna_base_to_four_bits_table = None
 
 key_filename = "key.txt"
-original_filename = "original.txt"
+plaintext_filename = "plaintext.txt"
 encrypted_filename = "encrypted.txt"
 decrypted_filename = "decrypted.txt"
 
@@ -65,6 +66,13 @@ def byte2bin(byte_val):
     Transform a byte (8-bit) value into a bitstring
     """
     return bin(byte_val)[2:].zfill(8)
+
+def bitstring2bytes(s):
+    return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
+
+def bytes2binstr(b, n=None):
+    s = ''.join(f'{x:08b}' for x in b)
+    return s if n is None else s[:n + n // 8 + (0 if n % 8 else -1)]
 
 
 def bitxor(a, b):

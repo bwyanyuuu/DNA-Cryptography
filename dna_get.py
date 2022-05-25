@@ -1,11 +1,17 @@
 """
 DNA Genetic Encryption Technique
 """
+from functools import reduce
+from random import choice
 import string
 from time import time
 
 import utils
 from utils import *
+
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
+from string import digits, ascii_letters, punctuation
 
 # number of rounds the algorithm is run, chosen randomly
 rounds_no = None
@@ -24,19 +30,28 @@ def set_globals():
     decryption_key = ""
 
 
-def encrypt_key(data, key):
+def encrypt_key(data, key, iv):
     """
-    Encrypt data with key: data XOR key.
+    Encrypt data with key: AES.
+    data: string
+    key: string
     """
-
+    global decryption_key
+    
+    b_key = bitstring2bytes(key)
+    b_data = bitstring2bytes(data)
+    
+    cipher = AES.new(b_key, AES.MODE_CBC, iv=iv.encode())
+    cipheredData = cipher.encrypt(pad(b_data, AES.block_size))
+    
     # repeat key ONLY if data is longer than key and encrypt
-    if len(data) > len(key):
-        factor = int(len(data) / len(key))
-        key += key * factor
+    # if len(data) > len(key):
+    #     factor = int(len(data) / len(key))
+    #     key += key * factor
 
-        return bitxor(data, key)
-
-    return bitxor(data, key)
+    #     return bitxor(data, key)  
+    # return bitxor(data, key)
+    return bytes2binstr(cipheredData)
 
 
 def reshape(dna_sequence):
@@ -259,7 +274,7 @@ def mutation(population):
     return new_population
 
 
-def dna_get(text, key):
+def dna_get(text, key, iv):
     global rounds_no
     global decryption_key
 
@@ -284,7 +299,7 @@ def dna_get(text, key):
 
         # encrypt data with key after reshaping it back to binary sequence and then convert it back to dna sequence
         b_data2 = bits_to_dna(
-            group_bits(encrypt_key(dna_to_bits(reverse_reshape(b_data2), utils.dna_base_to_two_bits_table), key)),
+            group_bits(encrypt_key(dna_to_bits(reverse_reshape(b_data2), utils.dna_base_to_two_bits_table), key, iv)),
             utils.two_bits_to_dna_base_table)
         # print("Encrypted data:", b_data2)
 
@@ -314,11 +329,10 @@ def dna_get(text, key):
 def main():
     global decryption_key
 
-    original_file = open(original_filename, "w")
+    plaintext_file = open(plaintext_filename, "r")
 
-    # text = "In computer science and operations research, a genetic algorithm (GA) is a metaheuristic inspired by the " \
-    #        "process of natural selection that belongs to the larger class of evolutionary algorithms (EA)."
-    text = "Helloworld"
+    text = plaintext_file.read()
+    print(text)
     # used for evaluate performance to generate random text of any length
     # text = ''.join(
     #    random.SystemRandom().choice(string.ascii_letters + string.digits + string.punctuation + string.whitespace) for
@@ -326,19 +340,19 @@ def main():
 
     print("Text:", text)
 
-    original_file.write(text)
-
     # generate random key(it can have any length, could be the length of the plaintext)
     # in this case, I used 128 bit key
-    key = str2bin(''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(16)))
+    key = str2bin(''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(32)))
 
     print("Key:", len(key), key)
 
     # set initial values of global variables
     set_globals()
 
-    # append the key first
+    # append the key and iv first
     decryption_key += key_del + key + key_del
+    iv = reduce(lambda x, y: x + choice(digits + ascii_letters + punctuation), range(16), "")
+    decryption_key += iv_del + iv + iv_del
 
     # generate the encoding tables
     generate_pre_processing_tables()
@@ -346,7 +360,7 @@ def main():
 
     # get the ciphertext
     start = time()
-    encrypted_text = dna_get(text, key)
+    encrypted_text = dna_get(text, key, iv)
     print("Final DNA sequence:", encrypted_text)
     end = time()
 
@@ -362,8 +376,9 @@ def main():
     key_file.write(decryption_key)
 
     encrypted_file.close()
-    original_file.close()
+    plaintext_file.close()
     key_file.close()
+    print(decryption_key)
 
 
 if __name__ == '__main__':
