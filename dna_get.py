@@ -342,10 +342,9 @@ def main():
 
     # generate random key(it can have any length, could be the length of the plaintext)
     # in this case, I used 128 bit key
-    key = str2bin(''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(32)))
+    key = str2bin(''.join(random.SystemRandom().choice(string.ascii_letters + string.digits) for _ in range(16)))
 
     print("Key:", len(key), key)
-
     # set initial values of global variables
     set_globals()
 
